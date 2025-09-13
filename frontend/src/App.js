@@ -171,6 +171,7 @@ function App() {
             <GameCanvas
               players={players}
               currentPhase={currentPhase}
+              myRole={myRole}
               onAction={currentPhase === 'night' ? handleNightAction : handleVote}
             />
           </div>
