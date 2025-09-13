@@ -142,7 +142,10 @@ class InMemoryGameStateManager:
 
 # Try to use Redis, fallback to in-memory
 try:
+    # Check if Redis is available
+    r = redis.Redis.from_url("redis://localhost:6379")
+    r.ping()
     game_state_manager = GameStateManager()
-except Exception as e:
+except redis.exceptions.ConnectionError as e:
     print(f"Redis not available, using in-memory storage: {e}")
     game_state_manager = InMemoryGameStateManager()
