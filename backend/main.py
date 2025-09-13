@@ -2,8 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import socketio
 import uvicorn
-from .game import assign_roles, start_night_phase, process_night_actions, process_votes, check_win_conditions, GamePhase
-from .state import game_state_manager
+from game import assign_roles, start_night_phase, process_night_actions, process_votes, check_win_conditions, GamePhase
+from state import game_state_manager
 
 app = FastAPI(title="Mafia Game Server", version="1.0.0")
 
