@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import socketio
+import asyncio
 import uvicorn
 try:
     from .game import assign_roles, start_night_phase, process_night_actions, process_votes, check_win_conditions, GamePhase
@@ -116,6 +117,11 @@ async def night_action(sid, data):
 
     game_state_manager.record_night_action(action_type, sid, target_sid)
     await sio.emit('action_received', {'action': action_type}, to=sid)
+
+async def end_night_after_delay(delay: int):
+    await asyncio.sleep(delay)
+    print("Auto-ending night phase...")
+    await sio.emit('end_night', {})
 
 @sio.event
 async def end_night(sid, data):

@@ -136,6 +136,17 @@ def process_night_actions(game_state: Dict) -> Dict:
 
 def process_votes(game_state: Dict, votes: Dict[str, str]) -> Dict:
     """Process day phase voting"""
+    players = game_state['players']
+    alive_players = [p for p in players if p.alive]
+
+    # AI voting
+    for player in alive_players:
+        if player.is_ai and player.sid not in votes:
+            possible_targets = [p for p in alive_players if p.sid != player.sid]
+            if possible_targets:
+                target = random.choice(possible_targets)
+                votes[player.sid] = target.sid
+
     # Reset votes
     for player in game_state['players']:
         if player.alive:
@@ -148,7 +159,6 @@ def process_votes(game_state: Dict, votes: Dict[str, str]) -> Dict:
             target.votes += 1
 
     # Find player with most votes
-    alive_players = [p for p in game_state['players'] if p.alive]
     if alive_players:
         eliminated = max(alive_players, key=lambda p: p.votes)
         eliminated.alive = False
