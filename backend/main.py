@@ -2,22 +2,30 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import socketio
 import uvicorn
-from game import assign_roles, start_night_phase, process_night_actions, process_votes, check_win_conditions, GamePhase
-from state import game_state_manager
+try:
+    from .game import assign_roles, start_night_phase, process_night_actions, process_votes, check_win_conditions, GamePhase
+    from .state import game_state_manager
+except ImportError:
+    # Fallback for direct execution
+    import sys
+    import os
+    sys.path.append(os.path.dirname(__file__))
+    from game import assign_roles, start_night_phase, process_night_actions, process_votes, check_win_conditions, GamePhase
+    from state import game_state_manager
 
 app = FastAPI(title="Mafia Game Server", version="1.0.0")
 
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend URL
+    allow_origins=["http://localhost:3000"],  # Frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # SocketIO server
-sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
+sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins=['http://localhost:3000'])
 socket_app = socketio.ASGIApp(sio, app)
 
 # WebSocket event handlers
@@ -147,4 +155,4 @@ async def reset_game():
     return {"message": "Game reset"}
 
 if __name__ == "__main__":
-    uvicorn.run(socket_app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:socket_app", host="0.0.0.0", port=8000, reload=True)

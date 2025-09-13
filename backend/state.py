@@ -1,7 +1,7 @@
 import redis
 import json
 from typing import Dict, List, Optional
-from .game import Player, GamePhase, initialize_game_state
+from game import Player, GamePhase, initialize_game_state
 
 class GameStateManager:
     def __init__(self, redis_url: str = "redis://localhost:6379"):
