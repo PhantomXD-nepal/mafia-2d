@@ -14,6 +14,16 @@ except ImportError:
     from game import assign_roles, start_night_phase, process_night_actions, process_votes, check_win_conditions, GamePhase
     from state import game_state_manager
 
+import logging
+
+# Logging setup
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+file_handler = logging.FileHandler('mafia.log')
+file_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+logging.getLogger().addHandler(file_handler)
+
 app = FastAPI(title="Mafia Game Server", version="1.0.0")
 
 # CORS middleware
@@ -32,12 +42,12 @@ socket_app = socketio.ASGIApp(sio, app)
 # WebSocket event handlers
 @sio.event
 async def connect(sid, environ):
-    print(f"Client {sid} connected")
+    logging.info(f"Client {sid} connected")
     await sio.emit('message', {'data': 'Connected to Mafia Game Server'}, to=sid)
 
 @sio.event
 async def disconnect(sid):
-    print(f"Client {sid} disconnected")
+    logging.info(f"Client {sid} disconnected")
     game_state_manager.remove_player(sid)
     await sio.emit('lobby_update', game_state_manager.get_players_dict())
 
@@ -45,7 +55,7 @@ async def disconnect(sid):
 async def join_lobby(sid, data):
     """Handle player joining lobby"""
     name = data.get('name', f'Player_{sid[:4]}')
-    print(f"Player {name} joined lobby")
+    logging.info(f"Player {name} joined lobby")
 
     game_state_manager.add_player(sid, name)
     players = game_state_manager.get_players_dict()
@@ -64,7 +74,7 @@ async def start_game(sid, data):
         await sio.emit('error', {'message': 'Need exactly 7 players to start'}, to=sid)
         return
 
-    print("Game starting...")
+    logging.info("Game starting...")
     assign_roles(state['players'])
     game_state_manager.update_phase(GamePhase.ROLE_ASSIGNMENT)
 
@@ -80,6 +90,7 @@ async def start_game(sid, data):
     game_state_manager.save_game_state(state)
 
     await sio.emit('phase_change', {'phase': 'night', 'message': 'Night phase begins!'})
+    asyncio.create_task(end_night_after_delay(10))
 
 @sio.event
 async def start_game_with_ai(sid, data):
@@ -90,9 +101,13 @@ async def start_game_with_ai(sid, data):
         await sio.emit('error', {'message': 'At least one human player is required'}, to=sid)
         return
 
-    print("Starting game with AI...")
+    logging.info("Starting game with AI...")
     from game import start_game_with_ai as start_game_with_ai_func
     start_game_with_ai_func(state)
+    game_state_manager.save_game_state(state) # Save state after adding AI
+    await sio.emit('lobby_update', game_state_manager.get_players_dict()) # Update lobby
+    await sio.sleep(1) # Give frontend time to update
+
     game_state_manager.update_phase(GamePhase.ROLE_ASSIGNMENT)
 
     # Send roles to players privately
@@ -108,6 +123,7 @@ async def start_game_with_ai(sid, data):
     game_state_manager.save_game_state(state)
 
     await sio.emit('phase_change', {'phase': 'night', 'message': 'Night phase begins!'})
+    asyncio.create_task(end_night_after_delay(10))
 
 @sio.event
 async def night_action(sid, data):
@@ -120,7 +136,7 @@ async def night_action(sid, data):
 
 async def end_night_after_delay(delay: int):
     await asyncio.sleep(delay)
-    print("Auto-ending night phase...")
+    logging.info("Auto-ending night phase...")
     await sio.emit('end_night', {})
 
 @sio.event

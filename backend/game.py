@@ -2,6 +2,11 @@ import random
 from typing import List, Dict, Optional
 from enum import Enum
 
+AI_NAMES = [
+    "Shadow", "Viper", "Ghost", "Raven", "Specter", "Wraith", "Nyx",
+    "Orion", "Draco", "Scorpio", "Phoenix", "Griffin", "Hydra", "Siren"
+]
+
 class Role(Enum):
     NIGHTMARE = "nightmare"
     WITCH = "witch"
@@ -62,9 +67,11 @@ def start_game_with_ai(game_state: Dict) -> None:
     num_players = len(game_state['players'])
     num_ai_to_add = 7 - num_players
 
-    for i in range(num_ai_to_add):
+    random.shuffle(AI_NAMES)
+    ai_names_to_use = AI_NAMES[:num_ai_to_add]
+
+    for i, ai_name in enumerate(ai_names_to_use):
         ai_sid = f"ai_{i}"
-        ai_name = f"AI Player {i + 1}"
         ai_player = Player(ai_sid, ai_name, is_ai=True)
         game_state['players'].append(ai_player)
 
