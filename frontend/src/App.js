@@ -88,6 +88,10 @@ function App() {
     socket.emit('start_game', {});
   };
 
+  const handleStartGameWithAI = () => {
+    socket.emit('start_game_with_ai', {});
+  };
+
   const handleNightAction = (action, target) => {
     socket.emit('night_action', { action, target });
   };
@@ -129,6 +133,12 @@ function App() {
                 Join Lobby
               </button>
             </div>
+
+            {players.length < 7 && (
+              <button onClick={handleStartGameWithAI} className="start-button ai-button">
+                Play with AI
+              </button>
+            )}
 
             {players.length >= 7 && (
               <button onClick={handleStartGame} className="start-button">

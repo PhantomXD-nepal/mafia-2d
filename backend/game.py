@@ -19,12 +19,13 @@ class GamePhase(Enum):
     GAME_OVER = "game_over"
 
 class Player:
-    def __init__(self, sid: str, name: str):
+    def __init__(self, sid: str, name: str, is_ai: bool = False):
         self.sid = sid
         self.name = name
         self.role: Optional[Role] = None
         self.alive = True
         self.votes = 0
+        self.is_ai = is_ai
 
     def to_dict(self):
         return {
@@ -32,7 +33,8 @@ class Player:
             "name": self.name,
             "role": self.role.value if self.role else None,
             "alive": self.alive,
-            "votes": self.votes
+            "votes": self.votes,
+            "is_ai": self.is_ai
         }
 
 def assign_roles(players: List[Player]) -> None:
@@ -55,6 +57,19 @@ def assign_roles(players: List[Player]) -> None:
     for player, role in zip(players, roles):
         player.role = role
 
+def start_game_with_ai(game_state: Dict) -> None:
+    """Fill the game with AI players and start."""
+    num_players = len(game_state['players'])
+    num_ai_to_add = 7 - num_players
+
+    for i in range(num_ai_to_add):
+        ai_sid = f"ai_{i}"
+        ai_name = f"AI Player {i + 1}"
+        ai_player = Player(ai_sid, ai_name, is_ai=True)
+        game_state['players'].append(ai_player)
+
+    assign_roles(game_state['players'])
+
 def start_night_phase(game_state: Dict) -> Dict:
     """Initialize night phase actions"""
     # Reset night actions
@@ -70,7 +85,16 @@ def start_night_phase(game_state: Dict) -> Dict:
 def process_night_actions(game_state: Dict) -> Dict:
     """Process all night actions and determine deaths"""
     actions = game_state['night_actions']
+    players = game_state['players']
     deaths = []
+
+    # AI Nightmare action
+    nightmare = next((p for p in players if p.role == Role.NIGHTMARE and p.is_ai and p.alive), None)
+    if nightmare and not actions.get('kill_target'):
+        possible_targets = [p for p in players if p.alive and p.role not in {Role.NIGHTMARE, Role.WITCH}]
+        if possible_targets:
+            target = random.choice(possible_targets)
+            actions['kill_target'] = target.sid
 
     # Witch inspects and shares with Nightmare
     if actions['witch_inspection']:

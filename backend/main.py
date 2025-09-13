@@ -81,6 +81,34 @@ async def start_game(sid, data):
     await sio.emit('phase_change', {'phase': 'night', 'message': 'Night phase begins!'})
 
 @sio.event
+async def start_game_with_ai(sid, data):
+    """Handle game start with AI"""
+    state = game_state_manager.get_game_state()
+    num_players = len(state['players'])
+    if num_players < 1:
+        await sio.emit('error', {'message': 'At least one human player is required'}, to=sid)
+        return
+
+    print("Starting game with AI...")
+    from game import start_game_with_ai as start_game_with_ai_func
+    start_game_with_ai_func(state)
+    game_state_manager.update_phase(GamePhase.ROLE_ASSIGNMENT)
+
+    # Send roles to players privately
+    for player in state['players']:
+        if not player.is_ai:
+            await sio.emit('role_assigned', {
+                'role': player.role.value if player.role else None,
+                'name': player.name
+            }, to=player.sid)
+
+    # Start night phase
+    start_night_phase(state)
+    game_state_manager.save_game_state(state)
+
+    await sio.emit('phase_change', {'phase': 'night', 'message': 'Night phase begins!'})
+
+@sio.event
 async def night_action(sid, data):
     """Handle night actions from players"""
     action_type = data.get('action')
